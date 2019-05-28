@@ -1,0 +1,587 @@
+---
+title: "Causal Analysis"
+author: "Joshua F. Wiley"
+date: "`r Sys.Date()`"
+output: 
+  tufte::tufte_html: 
+    toc: true
+    number_sections: true
+  tufte::tufte_handout: 
+    toc: true
+    number_sections: true
+  word_document:
+    toc: false
+always_allow_html: yes
+---
+
+```{r, echo=FALSE, include=FALSE}
+## note this chunk is NOT required
+## DO NOT RUN
+library(checkpoint)
+checkpoint("2019-01-25", R.version = "3.5.1",
+           scanForPackages = FALSE)
+library(DiagrammeR)
+```
+
+Download the raw `R` markdown code here
+[https://jwiley.github.io/MonashDoctoralStatistics/Causal_Analysis.rmd](https://jwiley.github.io/MonashDoctoralStatistics/Causal_Analysis.rmd).
+
+# Causal Analysis Theory
+
+The general goal of causal analysis is to quantify the causal effect
+of one variable on another. Arguably, much perhaps even most of
+science has the goal of causal analysis, although not always couched
+in such direct language.
+
+Often, methods are taught that seemingly separate whether an analysis
+is causal or not based on whether it comes from an experiment or RCT
+(causal) or any other non-randomized design. This is not, strictly,
+true. Rather, experiments or RCTs help ensure the assumptions required
+for a causal analysis are met.
+
+## Terminology
+
+Before we consider different scenarios, there are some common terms /
+language to define.
+
+- $Y$ refers to our outcome of interest. For simplicity, let
+  $Y$ be a binary variable (e.g., Depressed or Not Depressed;
+  Presence or Absence of Hyperactive symptoms). We indicate these
+  separate outcomes, respectively as $Y_1 = (Y = 1)$ and 
+  $Y_0 = (Y = 0)$.
+- $X$ refers to our exposure of interest. For simplicity, let $X$ be a
+  binary variable as well (e.g., Treatment vs Control; Diagnosed with
+  Cancer). We represent these as $X_1 = (X = 1)$ and $X_0 = (X = 0)$.
+- $C$ refers to covariates that are confounds and generally common
+  causes of both $X$ and $Y$ that were measured and available for
+  analysis. 
+- $O$ refers to covariates that are confounds and generally common
+  causes of both $X$ and $Y$ that were **O**mmitted from assessments, so
+  are not available for analysis. 
+- $I$ refers to instrumental variables; that is variables that cause
+  $X$ but do not cause $Y$.
+- $P$ refers to proxy variables, that are caused by or in other ways
+  may be proxies for unmeasured covariates or common causes, $O$, but
+  do not themselves cause $X$ or $Y$
+- $L$ refers to collider variables, that are measured and may be
+  controlled for, but are not causes of $X$ or $Y$, but are caused by
+  $O$ where at least one $O$ also causes $X$ and another also causes
+  $Y$.
+- $M$ refers to a mechanism, that is on the causal path between $X$
+  and $Y$. Again, for convenience, we assume this is a binary variable
+  where $M_1 = (M = 1)$ and $M_0 = (M = 0)$ represent values of the
+  mechanism when it is present or absent.
+
+
+We use upper case letters to refer to the variables, and lower case
+letters to refer to specific values of them. For example: $Y = y$
+indicates $Y$ equalling some specific, constant value, $y$, so that
+$Y$ no longer varies but is a constant, although we do not care
+**which** specific constant (i.e., it does not matter whether it is 
+$Y = 1$ or $Y = 0$). The same applies to the other variables defined,
+$X = x$ refers to the exposure being held at some specific value of
+$X$, $C = c$ refers to covariates being held at some specific value of
+$C$, etc.
+
+## Counterfactuals
+
+Another key concept in causal analysis is the idea of counterfactuals
+also called expected outcomes. Counterfactuals underpin much of causal
+analysis. Counterfactuals refer to *what would have happened* under
+another reality. This is the core of causal reasoning. What would have
+to this person's depression if they had been given treatment instead
+of the control or the control instead of the treatment?
+
+Formally, we write expected outcomes as:
+
+$$E(Y_x)$$
+
+which indicates the outcome, $Y$, when $X = x$.
+The counterfactual or expected outcomes framework allows us more
+formal definitions of causal effects under different situations.
+Using the counterfactual framework, we can define the causal direct
+effect of our exposure, $X$, on the outcome, $Y$ as:
+
+$$E(Y_{X_1} - Y_{X_0})$$
+
+This represents the expected difference in the outcome when the
+exposure is held at 1 vs 0.
+
+Note that $Y_x$ will be the factual, observed outcome for
+some people, but will be a counterfactual, not observed outcome for
+other people. For example, for everyone actually receiving treatment,
+$Y_{X_1}$ will be the factual outcome, but $Y_{X_1}$ will be a
+counterfactual outcome for everyone actually receiving the control
+condition[^continuous]. Also note that there is an assumption that
+for everyone with $X = 1$, $Y_{X_1} = Y$. This means that the observed
+outcome data, are the outcomes associated with a specific level of the
+exposure. This could be violated if, for instance, there was
+measurement error on the exposure (e.g., someone who received
+treatment misclassified as control; someone listed as not diagnosed
+with cancer, but cancer was actually present) or if someone had both
+exposures but only one recorded (e.g., someone was not diagnosed with
+cancer; outcomes were assessed 4 weeks later and in that interim gap,
+cancer was diagnosed but not collected/assessed by the study).
+
+[^continuous]: Note that although we are only talking about binary
+    outcomes and exposures, the general principles hold true for
+    continuous outcomes and continuous exposures. In the case of
+    continuous exposures, however, would hold the exposure at
+    different specific levels and must assume some functional form
+    mapping the continuous exposure to the outcome, such as linear,
+    etc.
+	
+## Confounding 
+
+In experiments or RCTs, we may randomly assign people to a specific
+level of the exposure, $X$. However, in other settings, individuals'
+level of the exposure, $X$, may not be randomly assigned. When levels
+of the exposure are not randomly assigned, there may exist
+confounding that if not measured and accounted for introduces bias in
+the estimate of the causal effect of our exposure $X$ on the outcome
+$Y$. Most of our discussions today will focus on these cases and
+attempting to adjust for confounding.
+
+We say that a set of measured covariates is sufficient to eliminate
+confounding if:
+
+$$Y_x \perp X | C$$
+
+read: the expected outcome $Y_x$ is independent of the exposure, $X$
+given (conditioned, covaried on, at specific strata of) $C$.
+Thus the causal effect is:
+
+$$E(Y_{X_1} - Y_{X_0} | C)$$
+
+If $Y_x \perp X | C$ is true, then regardless of the study type, we
+can **estimate** the causal effect of $X$ on $Y$ based on sample data
+as:
+
+$$E(Y | X = 1, c) - E(Y | X = 0, c)$$
+
+Randomized designs, such as experiments and RCTs, are powerful because
+the randomization can ensure that $Y_x \perp X$ without requiring any
+$C$, eliminating the need or concern to identify, measure, and
+appropriately adjust for $C$. However, if confounders are
+appropriately mmeasured and modelled, causal estimates can be obtained
+from observational data.
+
+## Confounding Examples
+
+Now, let's look at some different causal models that may arise and the
+consequences of different choices.
+
+In the following figure, $C$ is an observed confounder that causes
+both $X$ and $Y$. If $C$ is ignored, the causal estimate of $X$ on $Y$
+will be biased. Adjusting for $C$, we can get an unbiased estimate of
+the causal effect of $X$ on $Y$.
+
+```{r, echo = FALSE, fig.cap = "C is a common cause of X and Y"}
+
+DiagrammeR::grViz("
+digraph 'C is a common cause of X and Y' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; C; 
+
+  X->Y C->X C->Y
+}
+")
+
+```
+
+In the following figure, $X$ is not a cause of $Y$, so the correct
+estimate of the causal effect is 0. In the graph, there are two,
+omitted confounders: $O1$ and $O2$. $L$ is a collider caused by both
+$O1$ and $O2$, but $L$ does not cause $X$ or $Y$. In this case,
+analyzing $X$ and $Y$ alone will provide a correct causal
+estimate. However, adjusting for $L$ while looking at the $X$ effect
+on $Y$ will induce bias. Specifically, adjusting for $L$ will result
+in unblocking a backdoor path from $X$ to $Y$ via $O1$, $L$, and $O2$
+leading to an (incorrect) apparent causal effect of $X$ on $Y$.
+Adjusting for collider variables can open backdoor paths and cause
+bias. **Adjusting for more variables is not always better.**
+
+```{r, echo = FALSE, fig.cap = "L is a collider and covarying for it will induce bias by unblocking a backdoor path from X to Y"}
+
+DiagrammeR::grViz("
+digraph 'L is a collider and covarying for it will induce bias' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; L; O1; O2; 
+
+  O1->L O1->X O2->L O2->Y
+  L->X [color=white]
+  X->Y [color=white]
+}
+")
+
+```
+
+In the following figure, $O$ is a common cause of $X$ and $Y$ but it
+was omitted from measurement so we cannot adjust for it. However, $O$
+is only connected to $X$ via $C$ which is measured. In this instance,
+adjusting for $C$ eliminates the bias due to $O$ which was not
+measured.
+
+```{r, echo = FALSE, fig.cap = "O is unmeasured, but covarying for C eliminates bias due to O"}
+
+DiagrammeR::grViz("
+digraph 'O is unmeasured, but covarying for C eliminates bias due to O' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; C; O; 
+
+  O->C C->X X->Y O->Y
+}
+")
+
+```
+
+When $O$ is a common cause of $X$ and $Y$ its omission will result in
+a biased causal estimate. In the following figure, $I$ is an
+instrumental variable that is a cause of $X$ but not of $Y$. With $O$
+omitted, adjusting for $I$ will not reduce bias from $O$ and in fact
+tends to exacerbate the bias from the omission of $O$.
+As with the collider example, this is another case where adjusting for
+the wrong variable can exacerbate bias.
+
+```{r, echo = FALSE, fig.cap = "O is unmeasured, I is an instrument (influences X not Y), covaring for I when O unmeasured may exacerbate bias due to O"}
+
+DiagrammeR::grViz("
+digraph 'O is unmeasured, I is an instrument (influences X not Y), covaring for I when O unmeasured may exacerbate bias due to O' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; I; O; 
+
+  I->X X->Y O->X O->Y
+}
+")
+
+```
+
+The following diagram shows a case where $O$ is omitted and a common
+cause of $X$ and $Y$. We do not have $O$, but we do have a proxy
+measure of $O$, $P$. $P$ does not cause $X$ or $Y$, but adjusting for
+it can reduce bias from omitting $O$.
+
+```{r, echo = FALSE, fig.cap = "Proxy variable P though not causal can be used to reduce bias from omitting O"}
+
+DiagrammeR::grViz("
+digraph 'O is unmeasured, P is a proxy of O not itself causally related to Y; covarying P can reduce bias from omitting O' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; P; O; 
+
+  O->X X->Y O->Y O->P
+}
+")
+
+```
+
+# Causal Effect Decompositions
+
+A common task in causal analysis is not only examining the causal
+effect of one variable, $X$, on another, $Y$, but decomposing this
+effect, such as identifying specific mediators or mechanisms.
+Previously, distinctions often were made between mediation and
+moderation models,  where mediation models tested mechanisms linking
+$X$ and $Y$, moderation models tested whether the causal effect of $X$
+on $Y$ differs across some third variable.
+Recently, these have been unified into a four-way decomposition of the
+effect of $X$ on $Y$ where another variable, $M$ may act both as
+mediator and moderator of the effect[^fourwaydecomp]. 
+Following is a diagram of a mediation model.
+
+[^fourwaydecomp]: VanderWeele, T. J. (2014). A unification of
+    mediation and interaction: a four-way
+    decomposition. *Epidemiology, 25*(5), 749. 
+
+```{r, echo = FALSE, fig.cap = "Mediation model with confounder C"}
+
+DiagrammeR::grViz("
+digraph 'Mediation model with confounder C' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  Y; X; M; C; 
+
+  X->M X->Y M->Y
+  C->X C->M C->Y
+}
+")
+
+```
+
+Previously we defined counterfactual outcomes based on level of the
+exposure: $Y_{X_1}$ and $Y_{X_0}$. Now that we have a mechanism as
+well, we need further counterfactuals, including what would have
+happened to the mediator if the exposure were set at specific values.
+
+$$M_{X_1}$$
+$$M_{X_0}$$
+
+as well as specific counterfactuals for the outcome under different
+actual occurrences of the exposure and mediator.
+
+$$Y_{X_{1}M_{1}}$$
+$$Y_{X_{1}M_{0}}$$
+$$Y_{X_{0}M_{1}}$$
+$$Y_{X_{0}M_{0}}$$
+
+Together, these pieces allow us to decompose the causal effect of $X$
+on $Y$ into four parts:
+
+1. Controlled direct effect ($CDE$): $Y_{X_{1}M_{0}} - Y_{X_{0}M_{0}}$
+2. Reference interaction ($INT_{ref}$): 
+   $(Y_{X_{1}M_{1}} - Y_{X_{1}M_{0}} - Y_{X_{0}M_{1}} + Y_{X_{0}M_{0}} )(M_{X_{0}})$
+3. Mediated interaction ($INT_{med}$): 
+   $(Y_{X_{1}M_{1}} - Y_{X_{1}M_{0}} - Y_{X_{0}M_{1}} + Y_{X_{0}M_{0}} )(M_{X_{1}}-M_{X_{0}})$
+4. Pure indirect effect ($PIE$): 
+   $(Y_{X_{0}M_{1}} - Y_{X_{0}M_{0}})(M_{X_{1}} - M_{X_{0}})$
+
+Based on this four-way decomposition, we also can define various
+composites of these:
+
+- Total effect: $CDE + INT_{ref} + INT_{med} + PIE$
+- Total indirect (mediated) effect: $PIE + INT_{med}$
+- Pure direct effect: $CDE + INT_{ref}$
+- Portion attributable to interaction: $INT_{ref} + INT_{med}$
+
+
+# Marginal Structural Models (MSMs)
+
+One of the primary tools for estimated causal effects are marginal
+structural models (MSMs). MSMs estimated marginal effects rather than
+conditional effects as in regression models.
+
+MSMs will match regression under some special conditions, but often do
+not. Marginal models focus on the population average, not for specific
+conditions or groups and they model expected outcomes, rather than
+directly observed data. 
+Often, MSMs adjust for confounds by using approaches such as
+Inverse Probability of Treatment Weights (IPTWs).
+
+IPTWs can be calculated several ways, but often what are known as
+"stabilized weights" (*sw*) are used, which are the ratio of the
+probability of the exposure to the conditional probability of the
+exposure, where it is conditioned on the relevant covariates, $C$. 
+Weights are calculated for each person, $i$, as:
+
+$$swx_i = \frac{P(X = x_i)}{P(X = x_i | C = c_i)}$$
+
+For cases where there is mediation, a second weight is needed, for the
+mediator, here the numerator is the conditional probability of having
+the mediator $M$, given the exposure $X$. The denominator is the same
+but now conditional on the exposure, the covariates used for the
+exposure, $C$, **and any additional covariates required to adjust for
+bias from the mediator to the outcome**, $CM$.
+
+$$swm_i = \frac{P(M = m_i | X = x_i)}{P(M = m_i | X = x_i, C = c_i, CM = cm_i)}$$
+
+Using these IPTWs, we could, for example, estimate the controlled
+direct effect of the exposure using the MSM:
+
+$$E(Y_{xm}) = b_0 + b_1 * X + b_2 * M + b_3 * X * M$$
+
+The weights for this would be the product of the exposure and mediator
+weights described previously:
+
+$$swx_i * swm_i$$
+
+These IPTWs address confounding, so no further adjustment in the model
+is needed for confounding. By using the IPTWs, we create a
+pseudo-population in which there is no confounding (or at least, in
+which we have adjusted for confounding as best we are able to). Once
+we have done that, we estimate the parameters of the MSMs typically
+using regular regression software.
+
+# MSMs and Causal Analysis in `R`
+
+For many MSMs, the main complicated task is estimating the IPTWs. To
+estimate them in `R`, we use the `ipw` package. The following code
+setups up the packages we need and loads a small sample dataset from
+the internet.
+
+```{r setup}
+options(digits = 2)
+
+## one new packages: ipw, use one of the codes below to install
+# install.packages("ipw", type = "binary")
+# install.packages("ipw")
+
+## once installed, run
+library(data.table)
+library(ipw)
+
+## read in sample dataset from online
+d <- fread("https://stats.idre.ucla.edu/stat/data/hsbdemo.csv")
+d[, GoodRead := as.integer(read > 50)]
+d[, GoodSocst := as.integer(socst > 60)]
+d[, GoodMath := as.integer(math > 52)]
+d[, GoodScience := as.integer(science > 55)]
+d[, honors := as.integer(honors == "enrolled")]
+```
+
+Following is a causal diagram representing our view of the world.
+In words, this diagram indicates belief that being in honors
+(exposure) has acausal effect on being a good reader (mechanism) and
+being good in social studies (outcome). Socioeconomic status and
+school type are seen as common causes both of being in honors and
+being good in social studies. Writing ability is seen as a unique
+confound of the effect from being a good reader to being good in
+social studies.
+
+```{r, echo = FALSE, fig.cap = "MSM mediation model"}
+
+DiagrammeR::grViz("
+digraph 'Mediation model with confounds' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  honors; GoodRead; GoodSocst;
+  ses; schtyp; write;
+
+  honors->GoodRead honors->GoodSocst GoodRead->GoodSocst
+  ses->honors ses->GoodSocst schtyp->honors schtyp->GoodSocst
+  write->GoodRead write->GoodSocst
+}
+")
+
+```
+
+To estimate a MSM, we first must generate IPTWs for our exposure,
+honors. This we accomplish using the `ipwpoint()` function.
+It is common to graph or otherwise summarise the weights after
+being made and often, to create truncated weights, here using 
+`trunc = .01`. The goal of truncating weights is to avoid extreme
+weights (either very large or very small). In this case, it does not
+appear to much matter from the figures, but we may use the truncated
+weights anyways (it is only the top and bottom .01 that are
+truncated).
+
+```{r, fig.width = 8, fig.height = 5, fig.cap = "Raw and truncated stabilized IPTWs for exposure"}
+
+swx <- ipwpoint(
+  exposure = honors,
+  family = "binomial",
+  link = "logit",
+  numerator = ~ 1,
+  denominator = ~ ses + schtyp,
+  data = d,
+  trunc = .01)
+
+par(mfrow = c(1, 2))
+ipwplot(weights = swx$ipw.weights, logscale = FALSE)
+ipwplot(weights = swx$weights.trunc, logscale = FALSE)
+
+summary(swx$ipw.weights)
+summary(swx$weights.trunc)
+
+```
+
+Next we repeat the same process for the mechanism. Now the numerator
+has the exposure as well and we add the new confound that only is
+expected to confound the mediator outcome path, writing.
+
+```{r, fig.width = 8, fig.height = 5, fig.cap = "Raw and truncated stabilized IPTWs for mediator"}
+
+swm <- ipwpoint(
+  exposure = GoodRead,
+  family = "binomial",
+  link = "logit",
+  numerator = ~ 1 + honors,
+  denominator = ~ 1 + honors + ses + schtyp + write,
+  data = d,
+  trunc = .01)
+
+par(mfrow = c(1, 2))
+ipwplot(weights = swm$ipw.weights, logscale = FALSE)
+ipwplot(weights = swm$weights.trunc, logscale = FALSE)
+
+## check a summary of the product of weights
+summary(swx$weights.trunc * swm$weights.trunc)
+
+```
+
+Finally, we can estimate our MSM. As the outcome is binary, we use a
+logistic model. For comparison, we also run a regular GLM with
+covariates added. For the MSM, we leave out confounds, but utilize
+weights, by specifying the `weights` argument and using the product of
+our exposure and mediator IPTWs.
+Finally, we can get a summary of the results to evaluate them and
+confidence intervals[^pvalues]. Note that warnings about non-integers
+in the the MSM are okay as these are related to the weighting.
+
+[^pvalues]: Some notes on the use of p-values here:
+Nature: http://dx.doi.org/10.1038/d41586-019-00857-9 
+JAMA: http://dx.doi.org/10.1001/jama.2019.4582 
+PeerJ: http://dx.doi.org/10.7287/peerj.preprints.27657v1
+Am Stat: http://dx.doi.org/10.1080/00031305.2018.1527253 
+Am Stat: http://dx.doi.org/10.1080/00031305.2019.1583913
+
+
+```{r, warning=FALSE}
+
+## glm approach with covariates
+mglm <- glm(GoodSocst ~ honors + GoodRead + ses + schtyp + write,
+            data = d, family = binomial())
+
+## msm approach
+msm <- glm(GoodSocst ~ honors + GoodRead,
+           data = d, family = binomial(),
+           weights = swx$weights.trunc * swm$weights.trunc)
+
+## glm results
+summary(mglm)
+confint(mglm)
+
+## msm results
+summary(msm)
+confint(msm)
+
+```
+
+# Activity (Workbook)
+
+Run a GLM and MSM for the following causal model.
+
+```{r, echo = FALSE, fig.cap = "Workbook causal model"}
+
+DiagrammeR::grViz("
+digraph 'Workbook mediation model' {
+  graph [overlap = true, fontsize = 10, rankdir = LR]
+
+  node [shape = plaintext]
+  honors; GoodMath; GoodScience;
+  ses; schtyp; read;
+
+  honors->GoodMath honors->GoodScience GoodMath->GoodScience
+  ses->honors ses->GoodScience schtyp->honors schtyp->GoodScience
+  read->GoodMath read->GoodScience
+}
+")
+
+```
+
+
+# Additional Resources
+
+- VanderWeele, T. (2015). *Explanation in causal inference: methods
+  for mediation and interaction*. Oxford University Press. 
+- VanderWeele, T. J. (2014). A unification of mediation and
+  interaction: a four-way decomposition. *Epidemiology, 25*(5), 749. 
+- VanderWeele, T. J. (2009). Marginal structural models for the
+  estimation of direct and indirect effects. *Epidemiology*, 18-26.
+- Robins, J. M., Hernan, M. A., and Brumback, B. (2000). Marginal
+  structural models and causal inference in
+  epidemiology. *Epidemiology*, 550-560.
+- Cole, S. R., & Hernán, M. A. (2008). Constructing inverse
+  probability weights for marginal structural models. *American
+  Journal of Epidemiology, 168*(6), 656-664.
+- Pearl, J. (2009). *Causality*. Cambridge University Press.
