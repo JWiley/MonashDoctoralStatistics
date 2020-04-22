@@ -13,18 +13,13 @@ output:
     toc: false
 ---
 
-```{r checkpoint, echo=FALSE, include=FALSE}
-## note this chunk is NOT required
-library(checkpoint)
-checkpoint("2019-01-25", R.version = "3.5.1",
-           scanForPackages = FALSE)
-```
 
 ```{r setup, include = FALSE}
 options(digits = 2)
 options(install.packages.check.source = "no")
 
 library(data.table)
+library(JWileymisc)
 library(ggplot2)
 library(rpart)
 library(randomForest)
@@ -33,7 +28,8 @@ library(spdep)
 library(DALEX)
 
 ## read in the dataset
-d <- readRDS("aces_daily_sim_processed.RDS")
+data(aces_daily)
+d <- as.data.table(aces_daily)
 ## make a copy, remove missing and create
 ## "Happy" as a binary variable
 d2 <- copy(d)[, .(
@@ -108,23 +104,23 @@ CARTs have many strengths.
   (lower branches on the tree are interactions with 
    higher branches)
    
+`r margin_note("Generally in statistics or in machine learning, our
+goal is to build models that predict or model the "true"
+associations or patterns. Due to a variety of reasons, we often
+assume there is some 'noise' in our data, due to measurement
+error, quirks of specific people/observations, etc. We do not want
+to model this noise. The idea of **overfitting** is that sometimes
+our models, especially complex ones in smaller samples, may fit or
+"learn" about the noise in the data rather than the true
+signal. When this occurs, a model may fit well in the data it is
+built on, but when taken to a new sample, fit poorly.")`
+
 However, CARTs also have drawbacks. Specifically, as you move down a
 tree, the sample gets smaller and smaller and often it is easy to
 overfit data. Often, CARTs result in a large, complex tree and
 research found that these trees typically did not replicate well when
 taken to new samples, suggesting that they were overfitting the 
-data[^overfitting].
-
-[^overfitting]: Generally in statistics or in machine learning, our
-    goal is to build models that predict or model the "true"
-    associations or patterns. Due to a variety of reasons, we often
-    assume there is some "noise" in our data, due to measurement
-    error, quirks of specific people/observations, etc. We do not want
-    to model this noise. The idea of **overfitting** is that sometimes
-    our models, especially complex ones in smaller samples, may fit or
-    "learn" about the noise in the data rather than the true
-    signal. When this occurs, a model may fit well in the data it is
-    built on, but when taken to a new sample, fit poorly.
+data.
 
 One solution used in the past was to "prune" CARTs. First, a large
 CART would be grown, and then it would be systematically pruned to
@@ -279,58 +275,60 @@ We can get many performance measures using the `confusionMatrix()`
 function. Assuming the table below, we have:
 
 ```{r, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
 tabl <- "
 |            | Event | No Event |
 |------------|:-----:|:--------:|
 | Event      | A     |  B       |
 | No Event   | C     |  D       |
 "
-cat(tabl) 
+cat(tabl)
+
 ```
 
 Accuracy is the proportion of events correctly classified.
 
-$$Accuracy = \frac{A + D}{A + B + C + D}$$
+$$ Accuracy = \frac{A + D}{A + B + C + D} $$
 
 Sensitivity is the proportion of events are actually predicted to be
 an event.
 
-$$Sensitivity = \frac{A}{A + C}$$
+$$ Sensitivity = \frac{A}{A + C} $$
 
 Specificity is the proportion of **non** events actually predicted to
 be **non** events.
 
-$$Specificity = \frac{D}{B + D}$$
+$$ Specificity = \frac{D}{B + D} $$
 
 Prevalence is the actual proportion of people with an event (compared
 to everyone).
 
-$$Prevalence = \frac{A + C}{A + B + C + D}$$
+$$ Prevalence = \frac{A + C}{A + B + C + D} $$
 
 Positive Predictive Value (PPV) is a measure of the value of the
 prediction for indicating that someone is a positive case.
 
-$$PPV = \frac{sensitivity \cdot prevalence}{(sensitivity \cdot prevalence) + ((1 - specificity) \cdot (1 - prevalence))}$$
+$$ PPV = \frac{sensitivity \cdot prevalence}{(sensitivity \cdot prevalence) + ((1 - specificity) \cdot (1 - prevalence))} $$
 
 Negative Predictive Value (NPV) is a measure of the value of the
 prediction for indicating that someone is a negative case.
 
-$$NPV = \frac{specificity \cdot (1 - prevalence)}{((1 - sensitivity)\cdot prevalence) + ((specificity) \cdot (1 - prevalence))}$$
+$$ NPV = \frac{specificity \cdot (1 - prevalence)}{((1 - sensitivity)\cdot prevalence) + ((specificity) \cdot (1 - prevalence))} $$
 
  Detection rate is the proportion of all people correctly predicted as
 having an event.
 
-$$DetectionRate = \frac{A}{A + B + C + D}$$
+$$ DetectionRate = \frac{A}{A + B + C + D} $$
 
 Detection prevalence is the proportion of all people predicted to have
 an event (correctly and incorrectly).
 
-$$DetectionPrev = \frac{A + B}{A + B + C + D}$$
+$$ DetectionPrev = \frac{A + B}{A + B + C + D} $$
 
 Balanced accuracy is an attempt to get a balanced measure that equally
 weights sensitivity and specificity.
 
-$$BalancedAccuracy = \frac{sensitivty + specificity}{2}$$
+$$ BalancedAccuracy = \frac{sensitivty + specificity}{2} $$
 
 
 ```{r RFPerf}
@@ -341,8 +339,6 @@ confusionMatrix(
   positive = "Happy")
 
 ``` 
-
-## Break
 
 ## Reading (Weihs et al)
 
@@ -415,7 +411,7 @@ plot(rfPDP2)
 
 ``` 
 
-## In Class Activity (Workbook)
+## Activity
 
 This activity also will form the workbook activity for the week.
 Using the code above, change some of the predictor variables. You can
@@ -473,7 +469,6 @@ forests is:
   *[note: this is a very good book written by well-respected
   experts. It also is about as gentle of an introduction as you will
   get for machine learning]*
-
 - Website for the `caret` package:
   [https://topepo.github.io/caret/](https://topepo.github.io/caret/)
 
